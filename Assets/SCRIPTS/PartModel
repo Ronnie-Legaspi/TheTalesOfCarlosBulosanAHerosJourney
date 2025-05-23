@@ -1,0 +1,16 @@
+using System;
+
+[Serializable]
+public class Part
+{
+    public int number;
+    public string image;
+    public string title;
+    public bool enabled;
+}
+
+[Serializable]
+public class PartListWrapper
+{
+    public Part[] parts;
+}

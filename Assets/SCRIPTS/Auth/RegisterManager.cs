@@ -25,7 +25,7 @@ public class RegisterManager : MonoBehaviour
     public Button registerButton;
     public Button toLoginLink;
 
-    string baseURL = "http://localhost/TheTalesOfCarlosBulosan/register.php";
+    string baseURL = "http://localhost/unity/register.php";
 
 
     void Start()
