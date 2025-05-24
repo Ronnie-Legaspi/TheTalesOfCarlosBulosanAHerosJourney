@@ -80,9 +80,11 @@ public class PartManager : MonoBehaviour
                     btn.onClick.AddListener(() =>
                     {
                         string sceneName = "Part" + sceneNumber + "Scene";
-                        Debug.Log("Loading scene: " + sceneName);
-                        SceneManager.LoadScene(sceneName);
+                        Debug.Log("Set TargetScene to: " + sceneName);
+                        SceneLoader.TargetScene = sceneName;
+                        SceneManager.LoadScene("LoadingScene");
                     });
+
                 }
             }
             else
