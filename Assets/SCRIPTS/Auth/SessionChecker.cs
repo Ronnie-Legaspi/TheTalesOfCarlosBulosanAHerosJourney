@@ -12,7 +12,7 @@ public class SessionChecker : MonoBehaviour
 
     IEnumerator CheckSession()
     {
-        UnityWebRequest www = UnityWebRequest.Get("http://localhost/unity/check_session.php");
+        UnityWebRequest www = UnityWebRequest.Get("http://127.0.0.1:8000/unity/check_session.php");
         yield return www.SendWebRequest();
 
         if (www.result == UnityWebRequest.Result.Success)

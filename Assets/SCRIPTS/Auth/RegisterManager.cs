@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 public class RegisterManager : MonoBehaviour
 {
@@ -19,14 +20,13 @@ public class RegisterManager : MonoBehaviour
     public TMP_Dropdown departmentDropdown;
 
     public TMP_Text messageText;
-    public GameObject messagePanel; // This is the panel containing the message text
+    public GameObject messagePanel;
     private CanvasGroup messageCanvasGroup;
 
     public Button registerButton;
     public Button toLoginLink;
 
-    string baseURL = "http://localhost/unity/register.php";
-
+    string baseURL = "http://127.0.0.1:8000/unity/register.php";
 
     void Start()
     {
@@ -34,7 +34,6 @@ public class RegisterManager : MonoBehaviour
         registerButton.onClick.AddListener(OnRegister);
         toLoginLink.onClick.AddListener(SwitchToLoginPanel);
 
-        // Get the CanvasGroup attached to the messagePanel
         messageCanvasGroup = messagePanel.GetComponent<CanvasGroup>();
         if (messageCanvasGroup != null)
         {
@@ -67,13 +66,13 @@ public class RegisterManager : MonoBehaviour
 
         if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
         {
-            StartCoroutine(ShowMessage(" All fields are required.", false));
+            StartCoroutine(ShowMessage("All fields are required.", false));
             return;
         }
 
-        if (!email.Contains("@"))
+        if (!Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
         {
-            StartCoroutine(ShowMessage(" Enter a valid email.", false));
+            StartCoroutine(ShowMessage("Enter a valid email address.", false));
             return;
         }
 
@@ -89,22 +88,30 @@ public class RegisterManager : MonoBehaviour
         form.AddField("department", department);
 
         UnityWebRequest www = UnityWebRequest.Post(baseURL, form);
-
         yield return www.SendWebRequest();
 
-        if (www.result == UnityWebRequest.Result.Success)
-        {
-            string responseText = www.downloadHandler.text;
-            int userId = ExtractUserIdFromResponse(responseText);
-            PlayerPrefs.SetInt("user_id", userId);
-            PlayerPrefs.Save();
+        string responseText = www.downloadHandler.text;
 
-            yield return StartCoroutine(ShowMessage(" Registered successfully!", true));
-            SceneManager.LoadScene("MainMenuScene");
+        if (www.result == UnityWebRequest.Result.ConnectionError || www.result == UnityWebRequest.Result.ProtocolError)
+        {
+            string errorMsg = !string.IsNullOrEmpty(responseText) ? responseText : www.error;
+            StartCoroutine(ShowMessage("Error: " + errorMsg, false));
         }
         else
         {
-            yield return StartCoroutine(ShowMessage(" " + www.downloadHandler.text, false));
+            if (www.responseCode == 200 && responseText.Contains("\"id\":"))
+            {
+                int userId = ExtractUserIdFromResponse(responseText);
+                PlayerPrefs.SetInt("user_id", userId);
+                PlayerPrefs.Save();
+
+                yield return StartCoroutine(ShowMessage("Registered successfully!", true));
+                SceneManager.LoadScene("MainMenuScene");
+            }
+            else
+            {
+                StartCoroutine(ShowMessage(responseText, false));
+            }
         }
     }
 
@@ -126,11 +133,11 @@ public class RegisterManager : MonoBehaviour
         messageText.color = success ? Color.green : Color.red;
 
         messagePanel.SetActive(true);
-        yield return StartCoroutine(FadeCanvasGroup(messageCanvasGroup, 0f, 1f, 0.3f)); // fade in
+        yield return StartCoroutine(FadeCanvasGroup(messageCanvasGroup, 0f, 1f, 0.3f));
 
-        yield return new WaitForSeconds(1.5f); // stay visible
+        yield return new WaitForSeconds(1.5f);
 
-        yield return StartCoroutine(FadeCanvasGroup(messageCanvasGroup, 1f, 0f, 0.3f)); // fade out
+        yield return StartCoroutine(FadeCanvasGroup(messageCanvasGroup, 1f, 0f, 0.3f));
         messagePanel.SetActive(false);
     }
 

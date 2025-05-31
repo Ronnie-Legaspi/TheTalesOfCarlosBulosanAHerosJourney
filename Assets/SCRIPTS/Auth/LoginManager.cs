@@ -22,7 +22,7 @@ public class LoginManager : MonoBehaviour
     public Button loginButton;
     public Button toRegisterLink;
 
-    private string loginURL = "http://localhost/unity/login.php";
+    private string loginURL = "http://127.0.0.1:8000/unity/login.php";
 
     void Start()
     {

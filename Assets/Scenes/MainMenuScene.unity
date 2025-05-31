@@ -630,7 +630,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 29a9e5a28d8623e4894cddb23783edf5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  partsUrl: http://localhost/unity/get_parts.php
+  partsUrl: http://127.0.0.1:8000/unity/get_parts.php
   partCardPrefab: {fileID: 6221828711653501988, guid: 3dbfd8d41da044543b27caf9cde96fcf, type: 3}
   contentContainer: {fileID: 1614543175}
 --- !u!4 &1394351239
