@@ -5,6 +5,8 @@ using UnityEngine.UI;
 using TMPro;
 using UnityEngine.Networking;
 
+
+
 [System.Serializable]
 public class Choice { public int id; public string choice_text; }
 [System.Serializable]
@@ -30,6 +32,10 @@ public class QuizManager : MonoBehaviour
     public GameObject resultPanel;
     public TMP_Text correctText, wrongText, percentageText;
 
+    // New UI elements
+    public TMP_Text ResultLabelTMP;
+    public GameObject Star0, Star1, Star2, Star3;
+
     private List<Question> questions = new();
     private int currentIndex = 0;
     private int correctCount = 0;
@@ -38,11 +44,14 @@ public class QuizManager : MonoBehaviour
     private int selectedChoiceId = -1;
     private Button selectedButton = null;
 
+    public Button closeButton;
+
     void Start()
     {
         userId = PlayerPrefs.GetInt("user_id", 1);
         nextButton.onClick.AddListener(OnNextClicked);
         StartCoroutine(FetchQuestions());
+        closeButton.onClick.AddListener(CloseResultPanel);
     }
 
     IEnumerator FetchQuestions()
@@ -170,9 +179,48 @@ public class QuizManager : MonoBehaviour
     {
         questionText.transform.parent.gameObject.SetActive(false);
         resultPanel.SetActive(true);
-        correctText.text = $"Correct: {correctCount}";
-        wrongText.text = $"Wrong: {wrongCount}";
-        percentageText.text = $"Score: {(correctCount * 100 / questions.Count)}%";
+
+        int totalQuestions = questions.Count;
+        int percentage = Mathf.RoundToInt((float)correctCount * 100f / totalQuestions);
+
+        correctText.text = $"{correctCount}";
+        wrongText.text = $"{wrongCount}";
+        percentageText.text = $"Score: {percentage}%";
+
+        // Set Result Label and stars
+        if (percentage == 100)
+        {
+            ResultLabelTMP.text = "Perfect!";
+            ActivateStar(3);
+        }
+        else if (percentage > 60)
+        {
+            ResultLabelTMP.text = "Great!";
+            ActivateStar(3);
+        }
+        else if (percentage > 30)
+        {
+            ResultLabelTMP.text = "Nice!";
+            ActivateStar(2);
+        }
+        else if (percentage > 0)
+        {
+            ResultLabelTMP.text = "Keep Learning!";
+            ActivateStar(1);
+        }
+        else
+        {
+            ResultLabelTMP.text = "Better Luck Next Time!";
+            ActivateStar(0);
+        }
+    }
+
+    void ActivateStar(int starCount)
+    {
+        Star0.SetActive(starCount == 0);
+        Star1.SetActive(starCount == 1);
+        Star2.SetActive(starCount == 2);
+        Star3.SetActive(starCount == 3);
     }
 
     void ClearChoices()
@@ -180,4 +228,18 @@ public class QuizManager : MonoBehaviour
         foreach (Transform child in choiceContainer)
             Destroy(child.gameObject);
     }
+
+    void CloseResultPanel()
+    {
+        resultPanel.SetActive(false);
+        questionText.transform.parent.gameObject.SetActive(true);
+
+        currentIndex = 0;
+        correctCount = 0;
+        wrongCount = 0;
+
+        ClearChoices();
+        ShowQuestion();
+    }
+
 }
