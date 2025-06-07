@@ -105,8 +105,12 @@ public class RegisterManager : MonoBehaviour
                 PlayerPrefs.SetInt("user_id", userId);
                 PlayerPrefs.Save();
 
+                yield return RegisterAchievement(userId, 1);
                 yield return StartCoroutine(ShowMessage("Registered successfully!", true));
-                SceneManager.LoadScene("MainMenuScene");
+                yield return new WaitForSeconds(1f);
+                // ✅ Set the target scene before loading the loading screen
+                SceneLoader.TargetScene = "MainMenuScene";
+                SceneManager.LoadScene("LoadingScene");
             }
             else
             {
@@ -151,5 +155,29 @@ public class RegisterManager : MonoBehaviour
             yield return null;
         }
         canvasGroup.alpha = end;
+    }
+
+    IEnumerator RegisterAchievement(int userId, int achievementId)
+    {
+        WWWForm form = new WWWForm();
+        form.AddField("user_id", userId);
+        form.AddField("achievement_id", achievementId);
+
+        string url = "http://127.0.0.1:8000/unity/achievements/register_success.php";
+
+        UnityWebRequest request = UnityWebRequest.Post(url, form);
+        yield return request.SendWebRequest();
+
+        if (request.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError("Failed to register achievementL " + request.error);
+
+        }
+        else
+        {
+            Debug.Log("Achievement registered successfully for user ID: " + userId);
+        }
+
+
     }
 }

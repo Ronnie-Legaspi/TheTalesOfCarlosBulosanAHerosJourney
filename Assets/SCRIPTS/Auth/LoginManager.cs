@@ -76,8 +76,12 @@ public class LoginManager : MonoBehaviour
                 PlayerPrefs.SetInt("user_id", userId);
                 PlayerPrefs.Save();
 
-                yield return StartCoroutine(ShowMessage(" Login successful!", true));
-                SceneManager.LoadScene("MainMenuScene");
+                yield return StartCoroutine(ShowMessage("Login successfully!", true));
+                yield return new WaitForSeconds(1f);
+
+                // ✅ Set target and load loading scene
+                SceneLoader.TargetScene = "MainMenuScene";
+                SceneManager.LoadScene("LoadingScene");
             }
             else
             {

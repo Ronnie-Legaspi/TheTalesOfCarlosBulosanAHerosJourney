@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1409718220338169462
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5248629692712194172}
+  - component: {fileID: 3906553382735116700}
+  m_Layer: 0
+  m_Name: QuizManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5248629692712194172
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1409718220338169462}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 362.17203, y: 199.09465, z: 2.3918498}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3906553382735116700
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1409718220338169462}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 132789c978438204288e59fd9d7dc785, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  questionText: {fileID: 0}
+  choiceButtonPrefab: {fileID: 5791063380471647746, guid: 6c6b54366a1f464489a6ad790d3be464, type: 3}
+  choiceContainer: {fileID: 0}
+  nextButton: {fileID: 0}
+  resultPanel: {fileID: 0}
+  correctText: {fileID: 0}
+  wrongText: {fileID: 0}
+  percentageText: {fileID: 0}
+  ResultLabelTMP: {fileID: 0}
+  Star0: {fileID: 0}
+  Star1: {fileID: 0}
+  Star2: {fileID: 0}
+  Star3: {fileID: 0}
+  closeButton: {fileID: 0}
+  viewMyPerformanceButton: {fileID: 0}
+  performancePanel: {fileID: 0}
+  performanceContainer: {fileID: 0}
+  performanceEntryPrefab: {fileID: 3893833409013191798, guid: 19f81d8cf2f26d146a0597a068498529, type: 3}
+  checkIcon: {fileID: 21300000, guid: 48835559ce0ae5142b6faf7990788560, type: 3}
+  crossIcon: {fileID: 21300000, guid: 0f806029713b17540933bb9fe5c56110, type: 3}
+  quizId: 1
