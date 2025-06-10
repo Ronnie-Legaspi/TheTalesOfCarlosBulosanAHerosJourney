@@ -9,7 +9,7 @@ public class AchievementCardUI : MonoBehaviour
     public Slider progressBar;
     public TMP_Text progressText;
     public Image background;
-    public GameObject doneIcon; // ✅ Add this in the Inspector and assign your done icon GameObject
+    public GameObject Plus3Thropy; // ✅ Add this in the Inspector and assign your done icon GameObject
 
     public void Setup(string title, string description, int userProgress, int maxProgress, bool unlocked)
     {
@@ -26,8 +26,8 @@ public class AchievementCardUI : MonoBehaviour
             : new Color(bgColor.r, bgColor.g, bgColor.b, 0.5f); // semi-transparent if locked
 
         // Done icon visibility
-        if (doneIcon != null)
-            doneIcon.SetActive(unlocked);
+        if (Plus3Thropy != null)
+            Plus3Thropy.SetActive(unlocked);
 
         // Title color
         titleText.color = unlocked ? new Color(0.0f, 0.5f, 0.0f) : Color.gray;
