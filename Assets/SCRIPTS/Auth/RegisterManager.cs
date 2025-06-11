@@ -103,15 +103,17 @@ public class RegisterManager : MonoBehaviour
             {
                 int userId = ExtractUserIdFromResponse(responseText);
                 PlayerPrefs.SetInt("user_id", userId);
+                PlayerPrefs.SetString("username", username); // ✅ Store username
                 PlayerPrefs.Save();
 
                 yield return RegisterAchievement(userId, 1);
                 yield return StartCoroutine(ShowMessage("Registered successfully!", true));
                 yield return new WaitForSeconds(1f);
-                // ✅ Set the target scene before loading the loading screen
+                
                 SceneLoader.TargetScene = "MainMenuScene";
                 SceneManager.LoadScene("LoadingScene");
             }
+
             else
             {
                 StartCoroutine(ShowMessage(responseText, false));

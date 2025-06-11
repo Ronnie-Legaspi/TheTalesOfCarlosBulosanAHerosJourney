@@ -131,3 +131,6 @@ public class LoginManager : MonoBehaviour
         canvasGroup.alpha = end;
     }
 }
+
+
+
