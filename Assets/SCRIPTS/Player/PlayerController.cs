@@ -1,117 +1,96 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    // Camera settings
-    public ThirdPersonCamera cameraScript;
-
+    [Header("Movement Settings")]
     public float walkSpeed = 2f;
     public float runSpeed = 4f;
     public float rotationSpeed = 5f;
 
-    Animator animator;
-    int isWalkingHash;
-    int isRunningHash;
-    int isTalkingHash;
+    [Header("Talk Settings")]
+    public KeyCode talkKey = KeyCode.T;
 
-    bool isInConversation = false;
+    private Animator animator;
+    private readonly int isWalkingHash = Animator.StringToHash("isWalking");
+    private readonly int isRunningHash = Animator.StringToHash("isRunning");
+    private readonly int isTalkingHash = Animator.StringToHash("isTalking");
+
+    private bool isInConversation = false;
 
     void Start()
     {
         animator = GetComponent<Animator>();
-        isWalkingHash = Animator.StringToHash("isWalking");
-        isRunningHash = Animator.StringToHash("isRunning");
-        isTalkingHash = Animator.StringToHash("isTalking");
-
-        // Optional: auto-assign cameraScript if not manually set
-        if (cameraScript == null)
-        {
-            cameraScript = FindObjectOfType<ThirdPersonCamera>();
-        }
     }
 
     void Update()
     {
-        bool forwardPressed = Input.GetKey(KeyCode.W);
-        bool leftPressed = Input.GetKey(KeyCode.A);
-        bool rightPressed = Input.GetKey(KeyCode.D);
-        bool runPressed = Input.GetKey(KeyCode.LeftShift);
+        HandleInput();
 
-        bool anyMovementPressed = forwardPressed || leftPressed || rightPressed;
-
-        // Cancel talking if any movement or Escape
-        if (isInConversation && (anyMovementPressed || Input.GetKeyDown(KeyCode.Escape)))
-        {
-            StopConversation();
-        }
-
-        // Start conversation with E
-        if (Input.GetKeyDown(KeyCode.E) && !isInConversation)
-        {
-            StartConversation();
-        }
-
-        // Movement only when not in conversation
         if (!isInConversation)
         {
-            HandleMovement(forwardPressed, leftPressed, rightPressed, runPressed);
-        }
-
-        // Update camera state if script exists
-        if (cameraScript != null)
-        {
-            cameraScript.SetMoving(forwardPressed);
-            cameraScript.SetTalking(isInConversation);
+            HandleMovement();
         }
     }
 
-    void HandleMovement(bool forwardPressed, bool leftPressed, bool rightPressed, bool runPressed)
+    void HandleInput()
     {
-        bool isWalking = animator.GetBool(isWalkingHash);
-        bool isRunning = animator.GetBool(isRunningHash);
-        float moveSpeed = runPressed ? runSpeed : walkSpeed;
-
-        // Forward movement
-        if (forwardPressed)
+        if (Input.GetKeyDown(talkKey))
         {
-            transform.Translate(Vector3.forward * moveSpeed * Time.deltaTime);
-
-            // Smooth turning left/right
-            if (leftPressed)
-            {
-                Quaternion targetRotation = Quaternion.Euler(0f, transform.eulerAngles.y - 90f, 0f);
-                transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
-            }
-            else if (rightPressed)
-            {
-                Quaternion targetRotation = Quaternion.Euler(0f, transform.eulerAngles.y + 90f, 0f);
-                transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
-            }
+            if (isInConversation)
+                StopConversation();
+            else
+                StartConversation();
         }
 
-        // Walking animation
-        animator.SetBool(isWalkingHash, forwardPressed);
+        if (isInConversation && HasMovementInput())
+        {
+            StopConversation();
+        }
+    }
 
-        // Running animation
-        animator.SetBool(isRunningHash, forwardPressed && runPressed);
+    void HandleMovement()
+    {
+        float horizontal = Input.GetAxisRaw("Horizontal"); // A/D or Left/Right
+        float vertical = Input.GetAxisRaw("Vertical");     // W/S or Up/Down
+
+        Vector3 direction = new Vector3(horizontal, 0f, vertical);
+        bool hasInput = direction.sqrMagnitude > 0.01f;
+
+        // Determine if player is holding Shift to run
+        bool shouldRun = hasInput && Input.GetKey(KeyCode.LeftShift);
+        float moveSpeed = shouldRun ? runSpeed : walkSpeed;
+
+        if (hasInput)
+        {
+            direction.Normalize();
+            transform.Translate(direction * moveSpeed * Time.deltaTime, Space.World);
+
+            // Rotate towards movement direction
+            float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
+            Quaternion targetRot = Quaternion.Euler(0, targetAngle, 0);
+            transform.rotation = Quaternion.Lerp(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
+        }
+
+        // Update animator
+        animator.SetBool(isWalkingHash, hasInput);
+        animator.SetBool(isRunningHash, shouldRun);
+    }
+
+    bool HasMovementInput()
+    {
+        return Mathf.Abs(Input.GetAxisRaw("Horizontal")) > 0.01f || Mathf.Abs(Input.GetAxisRaw("Vertical")) > 0.01f;
     }
 
     void StartConversation()
     {
         isInConversation = true;
-        animator.SetTrigger("TalkTrigger");     // Play waving once
-        animator.SetBool(isTalkingHash, true);  // Start looping talk
-        if (cameraScript != null)
-            cameraScript.SetTalking(true);
+        animator.SetTrigger("TalkTrigger");
+        animator.SetBool(isTalkingHash, true);
     }
 
     void StopConversation()
     {
         isInConversation = false;
-        animator.SetBool(isTalkingHash, false); // Exit talk loop
-        if (cameraScript != null)
-            cameraScript.SetTalking(false);
+        animator.SetBool(isTalkingHash, false);
     }
 }

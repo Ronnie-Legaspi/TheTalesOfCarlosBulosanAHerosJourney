@@ -58,15 +58,18 @@ public class PartManager : MonoBehaviour
             TMP_Text titleText = card.transform.Find("PartTitle")?.GetComponent<TMP_Text>();
             if (titleText != null) titleText.text = part.title;
 
-            Sprite partSprite = Resources.Load<Sprite>("Parts/" + part.image);
+            // ✅ Load image from URL
             Image img = card.transform.Find("PartImage")?.GetComponent<Image>();
-            if (img != null && partSprite != null)
-                img.sprite = partSprite;
+            if (img != null && !string.IsNullOrEmpty(part.image_url))
+            {
+                StartCoroutine(LoadImageFromURL(part.image_url, img));
+            }
             else
-                Debug.LogWarning("Missing image for: " + part.image);
+            {
+                Debug.LogWarning("Missing or invalid image URL for: " + part.title);
+            }
 
             Button btn = card.GetComponent<Button>();
-
             if (part.enabled)
             {
                 if (btn != null)
@@ -75,10 +78,8 @@ public class PartManager : MonoBehaviour
                     btn.onClick.AddListener(() =>
                     {
                         string sceneName = "Part" + sceneNumber + "Scene";
-
                         PlayerPrefs.SetInt("current_part_number", sceneNumber);
                         PlayerPrefs.SetInt("user_id", userId);
-
                         SceneLoader.TargetScene = sceneName;
                         SceneManager.LoadScene("LoadingScene");
                     });
@@ -99,12 +100,36 @@ public class PartManager : MonoBehaviour
         Debug.Log("Finished loading parts.");
     }
 
+    // ✅ Coroutine to download image from URL
+    IEnumerator LoadImageFromURL(string url, Image imageComponent)
+    {
+        UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
+        yield return request.SendWebRequest();
+
+        if (request.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError("Failed to load image from URL: " + url + " - " + request.error);
+            yield break;
+        }
+
+        Texture2D texture = DownloadHandlerTexture.GetContent(request);
+        if (texture != null)
+        {
+            Sprite sprite = Sprite.Create(texture,
+                                          new Rect(0, 0, texture.width, texture.height),
+                                          new Vector2(0.5f, 0.5f));
+            imageComponent.sprite = sprite;
+        }
+    }
+
+    // ✅ Model class including image_url
     [System.Serializable]
     public class Part
     {
         public int number;
         public string title;
         public string image;
+        public string image_url; // ✅ NEW FIELD
         public bool enabled;
     }
 

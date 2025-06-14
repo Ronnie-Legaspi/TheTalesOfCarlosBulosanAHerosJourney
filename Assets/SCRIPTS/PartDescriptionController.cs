@@ -6,6 +6,7 @@ using UnityEngine.UI;
 
 public class PartDescriptionController : MonoBehaviour
 {
+    public GameObject PlayerControllerPanel;
     public GameObject descriptionPanel;
     public TMP_Text titleText;
     public TMP_Text descriptionText;
@@ -37,6 +38,7 @@ public class PartDescriptionController : MonoBehaviour
         closeButton.onClick.AddListener(() =>
         {
             descriptionPanel.SetActive(false);
+            PlayerControllerPanel.SetActive(true); // Enable player panel on close
         });
 
         nextButton.gameObject.SetActive(false);
@@ -44,6 +46,7 @@ public class PartDescriptionController : MonoBehaviour
 
         StartCoroutine(CheckAndShowDescription());
     }
+
 
     IEnumerator CheckAndShowDescription()
     {

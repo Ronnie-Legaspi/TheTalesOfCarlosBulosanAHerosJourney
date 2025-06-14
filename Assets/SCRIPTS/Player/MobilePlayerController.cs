@@ -1,96 +1,110 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;   // ★ for pointer‑down / pointer‑up
 
 public class MobilePlayerController : MonoBehaviour
 {
     public ThirdPersonCamera cameraScript;
 
+    [Header("Movement")]
     public float walkSpeed = 2f;
-    public float runSpeed = 4f;
+    public float runSpeed  = 4f;
     public float rotationSpeed = 5f;
 
-    public Joystick joystick;          // Fixed joystick reference
-    public Button talkButton;          // UI Talk Button
-    public Button runButton;           // UI Run Button
+    [Header("UI")]
+    public Joystick joystick;     // Fixed Joystick
+    public Button   talkButton;   // “Talk” button
+    public Button   runButton;    // “Run / Sprint” button (held)
 
+    // Animator hashes
     private Animator animator;
-    private int isWalkingHash;
-    private int isRunningHash;
-    private int isTalkingHash;
+    private readonly int isWalkingHash = Animator.StringToHash("isWalking");
+    private readonly int isRunningHash = Animator.StringToHash("isRunning");
+    private readonly int isTalkingHash = Animator.StringToHash("isTalking");
 
+    // State flags
+    private bool runButtonHeld   = false;   // true while finger is on runButton
     private bool isInConversation = false;
-    private bool isRunning = false;
+
+    /* ─────────────────────────────────────────────── */
 
     void Start()
     {
         animator = GetComponent<Animator>();
-        isWalkingHash = Animator.StringToHash("isWalking");
-        isRunningHash = Animator.StringToHash("isRunning");
-        isTalkingHash = Animator.StringToHash("isTalking");
 
         if (cameraScript == null)
             cameraScript = FindObjectOfType<ThirdPersonCamera>();
 
-        // Button listeners
+        /* ---------- UI LISTENERS ---------- */
+
+        // “Talk” is a normal click (toggle)
         if (talkButton != null)
             talkButton.onClick.AddListener(OnTalkButtonPressed);
 
+        // “Run” needs hold behaviour → use pointer‑down/up events
         if (runButton != null)
-            runButton.onClick.AddListener(() => isRunning = !isRunning);
+            AddHoldEventsToRunButton();
     }
+
+    /* ─────────────────────────────────────────────── */
 
     void Update()
     {
+        // Break out of conversation if player moves
         if (isInConversation && (joystick.Horizontal != 0 || joystick.Vertical != 0))
-        {
             StopConversation();
-        }
 
         if (!isInConversation)
-        {
             HandleMovement();
-        }
 
-        // Update camera states
+        // Camera helper (optional – keep your own logic)
         if (cameraScript != null)
         {
-            cameraScript.SetMoving(joystick.Vertical != 0);
+            cameraScript.SetMoving(joystick.Vertical != 0 || joystick.Horizontal != 0);
             cameraScript.SetTalking(isInConversation);
         }
     }
 
+    /* ─────────────────────────────────────────────── */
+    /* ---------------  MOVEMENT  -------------------- */
+
     void HandleMovement()
     {
-        Vector3 direction = new Vector3(joystick.Horizontal, 0f, joystick.Vertical).normalized;
+        Vector3 direction = new Vector3(joystick.Horizontal, 0f, joystick.Vertical);
+        bool hasInput = direction.sqrMagnitude > 0.01f;   // tiny dead‑zone
 
-        bool isWalking = direction.magnitude >= 0.1f;
-        float moveSpeed = isRunning ? runSpeed : walkSpeed;
+        // Run only if BOTH joystick is moved AND run button is held
+        bool shouldRun = hasInput && runButtonHeld;
+        float moveSpeed = shouldRun ? runSpeed : walkSpeed;
 
-        if (isWalking)
+        if (hasInput)
         {
+            // Normalise for consistent speed in diagonals
+            direction.Normalize();
+
             // Move
             transform.Translate(direction * moveSpeed * Time.deltaTime, Space.World);
 
-            // Rotate smoothly in joystick direction
+            // Rotate towards movement direction
             float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
-            Quaternion targetRotation = Quaternion.Euler(0f, targetAngle, 0f);
-            transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
+            Quaternion targetRot = Quaternion.Euler(0, targetAngle, 0);
+            transform.rotation = Quaternion.Lerp(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
         }
 
-        animator.SetBool(isWalkingHash, isWalking);
-        animator.SetBool(isRunningHash, isWalking && isRunning);
+        // Animator
+        animator.SetBool(isWalkingHash, hasInput);
+        animator.SetBool(isRunningHash, shouldRun);
     }
+
+    /* ─────────────────────────────────────────────── */
+    /* ---------------  TALKING  --------------------- */
 
     void OnTalkButtonPressed()
     {
         if (isInConversation)
-        {
             StopConversation();
-        }
         else
-        {
             StartConversation();
-        }
     }
 
     void StartConversation()
@@ -98,15 +112,37 @@ public class MobilePlayerController : MonoBehaviour
         isInConversation = true;
         animator.SetTrigger("TalkTrigger");
         animator.SetBool(isTalkingHash, true);
-        if (cameraScript != null)
-            cameraScript.SetTalking(true);
+        cameraScript?.SetTalking(true);
     }
 
     void StopConversation()
     {
         isInConversation = false;
         animator.SetBool(isTalkingHash, false);
-        if (cameraScript != null)
-            cameraScript.SetTalking(false);
+        cameraScript?.SetTalking(false);
+    }
+
+    /* ─────────────────────────────────────────────── */
+    /* ---------  RUN BUTTON HOLD HELPERS  ----------- */
+
+    void AddHoldEventsToRunButton()
+    {
+        EventTrigger trigger = runButton.GetComponent<EventTrigger>();
+        if (trigger == null)
+            trigger = runButton.gameObject.AddComponent<EventTrigger>();
+
+        // PointerDown
+        var downEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerDown };
+        downEntry.callback.AddListener(_ => runButtonHeld = true);
+        trigger.triggers.Add(downEntry);
+
+        // PointerUp / PointerExit
+        var upEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerUp };
+        upEntry.callback.AddListener(_ => runButtonHeld = false);
+        trigger.triggers.Add(upEntry);
+
+        var exitEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
+        exitEntry.callback.AddListener(_ => runButtonHeld = false);
+        trigger.triggers.Add(exitEntry);
     }
 }
