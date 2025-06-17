@@ -15,12 +15,18 @@ public class NpcDialogPanelManager : MonoBehaviour
     public Image npcImage;
     public Button nextButton;
     public TMP_Text nextButtonText;
+    public TMP_Text npcNameText; // <-- Added for displaying NPC name
+
+    [Header("Typing")]
+    [Tooltip("Speed of text appearance. Lower is faster.")]
+    [Min(0f)]
+    public float typewriterSpeed = 0.005f;
 
     private NpcDialogueData[] dialogues;
     private int currentIndex = 0;
     private bool showingPlayerResponse = false;
-
     private string playerName;
+    private Coroutine typingCoroutine;
 
     private void Awake()
     {
@@ -41,6 +47,7 @@ public class NpcDialogPanelManager : MonoBehaviour
         panel.SetActive(false);
         currentIndex = 0;
         dialogues = null;
+        npcNameText.text = ""; // Clear NPC name when closed
     }
 
     IEnumerator FetchDialogues(int npcId)
@@ -66,6 +73,8 @@ public class NpcDialogPanelManager : MonoBehaviour
 
     void HandleNextClick()
     {
+        if (typingCoroutine != null) return;
+
         if (dialogues == null || currentIndex >= dialogues.Length)
         {
             ClosePanel();
@@ -74,7 +83,7 @@ public class NpcDialogPanelManager : MonoBehaviour
 
         if (!showingPlayerResponse)
         {
-            ShowDialogueOrResponse(true); // Player's turn
+            ShowDialogueOrResponse(true);
         }
         else
         {
@@ -100,33 +109,44 @@ public class NpcDialogPanelManager : MonoBehaviour
 
         NpcDialogueData d = dialogues[currentIndex];
 
-        if (showPlayer)
+        string line = showPlayer
+            ? $"{playerName}: {d.player_response}"
+            : $"{d.npc_name}: {d.dialogue}";
+
+        dialogueText.color = showPlayer ? new Color(0f, 0.5f, 0f) : Color.black;
+
+        if (!showPlayer)
         {
-            string response = $"{playerName}: {d.player_response}";
-            dialogueText.color = new Color(0f, 0.5f, 0f); // Dark green
-            StartCoroutine(TypeWriterEffect(response));
-            showingPlayerResponse = true;
-        }
-        else
-        {
-            string npcLine = $"{d.npc_name}: {d.dialogue}";
-            dialogueText.color = Color.black;
-            StartCoroutine(TypeWriterEffect(npcLine));
-            showingPlayerResponse = false;
             StartCoroutine(LoadAndDisplayImage(d.npc_image_url));
+            npcNameText.text = d.npc_name; // <-- Display NPC name when NPC is speaking
         }
 
+        nextButton.interactable = false;
+        typingCoroutine = StartCoroutine(TypeWriterEffect(line));
+
+        showingPlayerResponse = showPlayer;
         nextButtonText.text = d.next_dialogue_id == 0 && showPlayer ? "Close" : "Next";
     }
 
     IEnumerator TypeWriterEffect(string fullText)
     {
         dialogueText.text = "";
-        foreach (char c in fullText)
+
+        if (typewriterSpeed <= 0f)
         {
-            dialogueText.text += c;
-            yield return new WaitForSeconds(0.02f); // Typewriter speed
+            dialogueText.text = fullText;
         }
+        else
+        {
+            foreach (char c in fullText)
+            {
+                dialogueText.text += c;
+                yield return new WaitForSeconds(typewriterSpeed);
+            }
+        }
+
+        nextButton.interactable = true;
+        typingCoroutine = null;
     }
 
     IEnumerator LoadAndDisplayImage(string url)

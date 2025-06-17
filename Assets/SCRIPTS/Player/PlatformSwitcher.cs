@@ -2,19 +2,24 @@ using UnityEngine;
 
 public class PlatformSwitcher : MonoBehaviour
 {
-    public PlayerController pcController;                  // For PC/WebGL
-    public MobilePlayerController mobileController;        // For Android/iOS
+    public MonoBehaviour pcController;
+    public MonoBehaviour mobileController;
 
-    void Awake()
+    void Start()
     {
-#if UNITY_ANDROID || UNITY_IOS
-        if (pcController != null) pcController.enabled = false;
-        if (mobileController != null) mobileController.enabled = true;
-        Debug.Log("Mobile controller enabled");
+#if UNITY_STANDALONE || UNITY_WEBGL || UNITY_EDITOR
+        EnableController(pcController, mobileController);
+#elif UNITY_IOS || UNITY_ANDROID
+        EnableController(mobileController, pcController);
 #else
-        if (pcController != null) pcController.enabled = true;
-        if (mobileController != null) mobileController.enabled = false;
-        Debug.Log("PC controller enabled");
+        Debug.LogWarning("Unknown platform - defaulting to PC controller.");
+        EnableController(pcController, mobileController);
 #endif
+    }
+
+    void EnableController(MonoBehaviour toEnable, MonoBehaviour toDisable)
+    {
+        if (toEnable != null) toEnable.enabled = true;
+        if (toDisable != null) toDisable.enabled = false;
     }
 }

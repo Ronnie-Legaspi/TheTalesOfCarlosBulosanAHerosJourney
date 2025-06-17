@@ -4,114 +4,133 @@ public class ThirdPersonCamera : MonoBehaviour
 {
     public Transform player;
     public Transform cameraTarget;
+
+    [Header("Normal Settings")]
     public float distance = 4.0f;
     public float height = 2.0f;
-    public float zoomSpeed = 2.0f;
-    public float minZoom = 2.0f;
-    public float maxZoom = 6.0f;
-    public float rotationSmoothTime = 0.2f;
-    public float returnDelay = 1.0f;
 
-    public bool isTalking = false;
-    public bool isMoving = false;
+    [Header("Zoom Settings")]
+    public float zoomDistance = 2.0f;
+    public float zoomHeight = 1.2f;
+    public float zoomSideOffset = 1.5f; // ← New: how much to slide to the side
+    public float zoomYawOffset = 45f;   // ← New: angle to rotate during zoom
+    public float zoomSpeed = 4f;
+
+    [Header("Common Settings")]
+    public float smoothTime = 0.2f;
 
     private Vector3 currentVelocity;
-    private float lastActiveTime = 0f;
-    private float yawVelocity;
-    private float pitch = 15f;
-    private float targetYaw;
-
+    private float yawOffset = 0f;
     private bool isDragging = false;
+    private bool shouldReturn = false;
+    private bool isZoomed = false;
+
+    private float currentDistance;
+    private float currentHeight;
+    private float currentSideOffset;
+    private float currentZoomYaw;
+
+    private float defaultYawOffset;
+
+    void Start()
+    {
+        currentDistance = distance;
+        currentHeight = height;
+        currentSideOffset = 0f;
+        defaultYawOffset = yawOffset;
+    }
 
     void LateUpdate()
     {
-        HandleZoom();
-        HandleRotationInput();
+        HandleDragInput();
 
-        if (isTalking)
+        if (!isDragging && shouldReturn && !isZoomed)
         {
-            CinematicView();
-            return;
+            yawOffset = Mathf.Lerp(yawOffset, defaultYawOffset, Time.deltaTime * 5f);
+            if (Mathf.Abs(yawOffset - defaultYawOffset) < 0.1f)
+            {
+                yawOffset = defaultYawOffset;
+                shouldReturn = false;
+            }
         }
 
-        // Smooth camera yaw to stay behind player within 90 degrees
-        if (!isDragging)
-        {
-            float playerYaw = player.eulerAngles.y;
-            float currentYaw = transform.eulerAngles.y;
-            float angleDifference = Mathf.DeltaAngle(currentYaw, playerYaw);
+        float targetYaw = player.eulerAngles.y + yawOffset;
+        Quaternion rotation = Quaternion.Euler(10f, targetYaw, 0f);
 
-            // Clamp angle within -45 to 45 degrees
-            angleDifference = Mathf.Clamp(angleDifference, -45f, 45f);
-            targetYaw = playerYaw - angleDifference;
-        }
+        // Compute position offset
+        Vector3 offset = rotation * new Vector3(currentSideOffset, 0, -currentDistance);
+        Vector3 targetPos = player.position + Vector3.up * currentHeight + offset;
 
-        float smoothYaw = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetYaw, ref yawVelocity, rotationSmoothTime);
-        Quaternion rotation = Quaternion.Euler(pitch, smoothYaw, 0f);
-
-        Vector3 offset = rotation * new Vector3(0, 0, -distance);
-        Vector3 targetPosition = player.position + Vector3.up * height + offset;
-
-        transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref currentVelocity, 0.1f);
+        transform.position = Vector3.SmoothDamp(transform.position, targetPos, ref currentVelocity, smoothTime);
         transform.LookAt(cameraTarget);
+
+        UpdateCameraZoomSmoothly();
     }
 
-    void HandleZoom()
+    void HandleDragInput()
     {
 #if UNITY_EDITOR || UNITY_STANDALONE
-        float scroll = Input.GetAxis("Mouse ScrollWheel");
-        distance -= scroll * zoomSpeed;
-#endif
-
-#if UNITY_ANDROID || UNITY_IOS
-        if (Input.touchCount == 2)
+        if (Input.GetMouseButtonDown(0))
         {
-            Touch t0 = Input.GetTouch(0);
-            Touch t1 = Input.GetTouch(1);
-            float prevDist = (t0.position - t0.deltaPosition - (t1.position - t1.deltaPosition)).magnitude;
-            float currDist = (t0.position - t1.position).magnitude;
-            float delta = prevDist - currDist;
-            distance += delta * 0.01f;
+            isDragging = true;
+            shouldReturn = false;
         }
-#endif
-        distance = Mathf.Clamp(distance, minZoom, maxZoom);
-    }
-
-    void HandleRotationInput()
-    {
-#if UNITY_EDITOR || UNITY_STANDALONE
-        if (Input.GetMouseButtonDown(0)) isDragging = true;
-        if (Input.GetMouseButtonUp(0)) isDragging = false;
-
-        if (isDragging)
+        if (Input.GetMouseButton(0) && isDragging)
         {
             float mouseX = Input.GetAxis("Mouse X");
-            targetYaw += mouseX * 100f * Time.deltaTime;
+            yawOffset += mouseX * 2f;
+        }
+        if (Input.GetMouseButtonUp(0))
+        {
+            isDragging = false;
+            shouldReturn = true;
         }
 #else
         if (Input.touchCount == 1)
         {
             Touch touch = Input.GetTouch(0);
-            if (touch.phase == TouchPhase.Began) isDragging = true;
-            if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled) isDragging = false;
-
-            if (isDragging && touch.phase == TouchPhase.Moved)
+            if (touch.phase == TouchPhase.Began)
             {
-                targetYaw += touch.deltaPosition.x * 0.1f;
+                isDragging = true;
+                shouldReturn = false;
+            }
+            else if (touch.phase == TouchPhase.Moved && isDragging)
+            {
+                yawOffset += touch.deltaPosition.x * 0.1f;
+            }
+            else if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled)
+            {
+                isDragging = false;
+                shouldReturn = true;
             }
         }
 #endif
-        lastActiveTime = Time.time;
     }
 
-    void CinematicView()
+    void UpdateCameraZoomSmoothly()
     {
-        Quaternion cinematicRot = Quaternion.Euler(20f, player.eulerAngles.y + 15f, 0f);
-        Vector3 offset = cinematicRot * new Vector3(0, 1.5f, -distance + 1f);
-        transform.position = Vector3.Lerp(transform.position, player.position + offset, Time.deltaTime * 2f);
-        transform.LookAt(cameraTarget);
+        float targetDist = isZoomed ? zoomDistance : distance;
+        float targetHeight = isZoomed ? zoomHeight : height;
+        float targetSide = isZoomed ? zoomSideOffset : 0f;
+        float targetYaw = isZoomed ? zoomYawOffset : defaultYawOffset;
+
+        currentDistance = Mathf.Lerp(currentDistance, targetDist, Time.deltaTime * zoomSpeed);
+        currentHeight = Mathf.Lerp(currentHeight, targetHeight, Time.deltaTime * zoomSpeed);
+        currentSideOffset = Mathf.Lerp(currentSideOffset, targetSide, Time.deltaTime * zoomSpeed);
+        yawOffset = Mathf.Lerp(yawOffset, targetYaw, Time.deltaTime * zoomSpeed);
     }
 
-    public void SetTalking(bool talking) => isTalking = talking;
-    public void SetMoving(bool moving) => isMoving = moving;
+    // 🟢 Call this from the NPC or trigger script
+    public void ZoomOnTalk()
+    {
+        isZoomed = true;
+        isDragging = false;
+    }
+
+    // 🟢 Call this when the player leaves the conversation
+    public void ResetCamera()
+    {
+        isZoomed = false;
+        shouldReturn = true;
+    }
 }
